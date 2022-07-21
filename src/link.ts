@@ -1,5 +1,8 @@
+import { loadPackageJson } from './loadPackageJson'
+
 export { link }
 
 function link(pkgName: string) {
-  console.log('link', pkgName)
+  const pkgJson = loadPackageJson(pkgName)
+  console.log('link', pkgName, pkgJson)
 }
