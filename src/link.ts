@@ -1,16 +1,32 @@
+export { link }
+
 import { loadPackageJson } from './loadPackageJson'
 import { runCommand } from './runCommand'
-
-export { link }
+import path from 'path'
 
 async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
   // `-q` to avoid `git clone` to write progress messages to stderr, see https://stackoverflow.com/questions/32685568/git-clone-writes-to-sderr-fine-but-why-cant-i-redirect-to-stdout
+  //*
   await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
     cwd: './deps/',
     timeout: 15 * 1000,
     printProgress: true,
   })
+  //*/
+  const depDirRelative = `./deps/${repo}/`
+  const depDir = path.join(process.cwd(), depDirRelative)
+  await runCommand(`pnpm link ${depDir}`, {
+    timeout: 60 * 1000,
+    printProgress: true,
+  })
+  /* Not need since `pnpm link` will run `pnpm install`
+  await runCommand('pnpm install', {
+    cwd: depDirRelative,
+    timeout: 60 * 1000,
+    printProgress: true,
+  })
+  */
 }
 
 function getGitRepo(pkgName: string) {
