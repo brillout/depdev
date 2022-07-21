@@ -1,19 +1,32 @@
 export { runCommand }
 
 import { exec, ExecException } from 'child_process'
+import path from 'path'
 
 function runCommand(
   cmd: string,
-  { swallowError, timeout = 5000, cwd }: { swallowError?: true; timeout?: number; cwd?: string } = {},
+  {
+    swallowError,
+    timeout = 5000,
+    cwd = process.cwd(),
+    printProgress,
+  }: { swallowError?: true; timeout?: number; cwd?: string; printProgress?: true | string } = {},
 ): Promise<string> {
   const { promise, resolvePromise, rejectPromise } = genPromise<string>()
 
+  let cwdResolved = cwd
+  if (cwdResolved.startsWith('.')) {
+    cwdResolved = path.join(process.cwd(), cwdResolved)
+  }
+
   const t = setTimeout(() => {
-    rejectPromise(new Error(`Command \`${cmd}\` (${cwd}) timeout [${timeout / 1000} seconds].`))
+    rejectPromise(new Error(`Command \`${cmd}\` (cwd: ${cwdResolved}) timed out (after ${timeout / 1000} seconds).`))
   }, timeout)
 
-  const options = { cwd }
-  exec(cmd, options, (err: ExecException | null, stdout, stderr) => {
+  if (printProgress) {
+    process.stdout.write(`Running \`${cmd}\` (cwd: \`${cwd}\`)...`)
+  }
+  exec(cmd, { cwd: cwdResolved }, (err: ExecException | null, stdout, stderr) => {
     clearTimeout(t)
     if (err || stderr) {
       if (swallowError) {
@@ -23,7 +36,7 @@ function runCommand(
         rejectPromise(
           new Error(
             [
-              `Command \`${cmd}\` (${cwd}) failed. Error:`,
+              `Command \`${cmd}\` (${cwdResolved}) failed. Error:`,
               `============== ERROR ==============`,
               errMsg.trim(),
               `===================================`,
@@ -32,6 +45,9 @@ function runCommand(
         )
       }
     } else {
+      if (printProgress) {
+        console.log(' done')
+      }
       resolvePromise(stdout)
     }
   })
