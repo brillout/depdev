@@ -1,7 +1,6 @@
 export { runCommand }
 
 import { exec, ExecException } from 'child_process'
-import assert from 'assert'
 
 function runCommand(
   cmd: string,
@@ -20,21 +19,13 @@ function runCommand(
       if (swallowError) {
         resolvePromise('SWALLOWED_ERROR')
       } else {
-        // Useless generic message
-        assert(err?.message.startsWith(`Command failed: ${cmd}`))
-        const errMsg = stderr || stdout || err?.message
+        const errMsg = stderr || err?.message || stdout
         rejectPromise(
           new Error(
             [
-              ``,
-              ``,
-              `===================================`,
-              `Command \`${cmd}\` (${cwd}) failed.`,
-              `===================================`,
-              ``,
+              `Command \`${cmd}\` (${cwd}) failed. Error:`,
               `============== ERROR ==============`,
-              errMsg,
-              ``,
+              errMsg.trim(),
               `===================================`,
             ].join('\n'),
           ),

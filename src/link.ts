@@ -6,10 +6,14 @@ export { link }
 
 async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
-  const depsDir = path.join(process.cwd(), 'deps/')
-  const cmd = `git clone git@github.com:${owner}/${repo}`
-  process.stdout.write(`Running \`${cmd}\`...`)
-  await runCommand(cmd, { cwd: depsDir })
+  const depsDirRelative = './deps/'
+  const depsDir = path.join(process.cwd(), depsDirRelative)
+  let cmd = `git clone git@github.com:${owner}/${repo}`
+  const cwd = depsDir
+  process.stdout.write(`Running \`${cmd}\` (cwd: \`${depsDirRelative}\`)...`)
+  // `-q` to avoid `git clone` to write progress messages to stderr, see https://stackoverflow.com/questions/32685568/git-clone-writes-to-sderr-fine-but-why-cant-i-redirect-to-stdout
+  cmd += ' -q'
+  await runCommand(cmd, { cwd, timeout: 15 * 1000 })
   console.log(' done')
 }
 
