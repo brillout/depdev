@@ -8,7 +8,7 @@ export { loadPackageJson }
 import path from 'path'
 import assert from 'assert'
 
-function loadPackageJson(dep: string) {
+function loadPackageJson(dep: string): Record<string, unknown> {
   const depMain = require.resolve(dep)
   const dirStart = path.dirname(depMain)
   let dir = dirStart
