@@ -1,10 +1,16 @@
 import { loadPackageJson } from './loadPackageJson'
+import { runCommand } from './runCommand'
+import path from 'path'
 
 export { link }
 
-function link(pkgName: string) {
-  const gitRepo = getGitRepo(pkgName)
-  console.log('link', pkgName, gitRepo)
+async function link(pkgName: string) {
+  const { owner, repo } = getGitRepo(pkgName)
+  const depsDir = path.join(process.cwd(), 'deps/')
+  const cmd = `git clone git@github.com:${owner}/${repo}`
+  process.stdout.write(`Running \`${cmd}\`...`)
+  await runCommand(cmd, { cwd: depsDir })
+  console.log(' done')
 }
 
 function getGitRepo(pkgName: string) {
