@@ -1,5 +1,5 @@
 {
-  "name": "@brillout/deplink",
+  "name": "@brillout/depdev",
   "version": "0.0.2",
   "scripts": {
     "dev": "tsc --watch",
@@ -11,13 +11,13 @@
     "typescript": "^4.3.5"
   },
   "bin": {
-    "deplink": "./bin.js"
+    "depdev": "./bin.js"
   },
   "files": [
     "dist/"
   ],
   "license": "MIT",
-  "repository": "github:brillout/deplink",
+  "repository": "github:brillout/depdev",
   "publishConfig": {
     "access": "public"
   }
