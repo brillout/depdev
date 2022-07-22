@@ -10,6 +10,15 @@ import { mkdirp } from './utils'
 async function link(pkgName: string) {
   const workspaceRoot = findWorkspaceRoot()
 
+  const pnpmLockFile = path.join(workspaceRoot, 'pnpm-lock.yaml')
+  if (!fs.existsSync(pnpmLockFile)) {
+    throw new Error(`Missing \`pnpm-lock.yaml\` at ${workspaceRoot}`)
+  }
+  const lockFileIsDirty = async () => (await runCommand(`git status --porcelain ${pnpmLockFile}`)) !== ''
+  if (await lockFileIsDirty()) {
+    throw new Error(`\`pnpm-lock.yaml\` is dirty: make sure \`pnpm-lock.yaml\` has no uncommitted changes (${pnpmLockFile})`)
+  }
+
   mkdirp('deps', workspaceRoot)
 
   const { owner, repo } = getGitRepo(pkgName)
@@ -37,11 +46,14 @@ async function link(pkgName: string) {
   }
   assert(fs.existsSync(pkgDir))
 
+  assert(!(await lockFileIsDirty()))
   // `pnpm link` also runs `pnpm install`
   await runCommand(`pnpm link ${pkgDir}`, {
     timeout: 120 * 1000,
     print: 'overview'
   })
+  await runCommand(`git checkout ${pnpmLockFile}`)
+  assert(!(await lockFileIsDirty()))
 
   /*
   await runCommand('pnpm run dev', {
