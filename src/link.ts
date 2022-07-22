@@ -3,9 +3,11 @@ export { link }
 import { loadPackageJson } from './loadPackageJson'
 import { runCommand } from './runCommand'
 import path from 'path'
+import { mkdirp } from './utils'
 
 async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
+  mkdirp('deps')
   // `-q` to avoid `git clone` to write progress messages to stderr, see https://stackoverflow.com/questions/32685568/git-clone-writes-to-sderr-fine-but-why-cant-i-redirect-to-stdout
   //*
   await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
