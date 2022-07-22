@@ -1,29 +1,32 @@
-import { link } from './link'
-import { unlink } from './unlink'
+import { install } from './install'
+import { clear } from './clear'
 
 const { command, pkgName } = parseArgs()
 
-if (command === 'link') {
-  link(pkgName)
+if (command === null) {
+  install(pkgName)
 }
-if (command === 'unlink') {
-  unlink(pkgName)
+if (command === 'clear') {
+  clear(pkgName)
 }
 
-function parseArgs() {
+function parseArgs(): { command: null; pkgName: string } | { command: 'clear'; pkgName: null | string } {
   const args = process.argv.slice(2)
-  const command = args[0]
-  const pkgName = args[1]
-  if (args.length !== 2 || !['link', 'unlink'].includes(command)) {
-    console.log(
-      [
-        // prettier-ignore
-        'Commands:',
-        '  link <npm-package-name>',
-        '  unlink <npm-package-name>',
-      ].join('\n'),
-    )
-    process.exit(0)
+  if (args.length === 1) {
+    return { command: null, pkgName: args[0] }
   }
-  return { command, pkgName }
+  const command = args[0]
+  if (command === 'clear' && args.length <= 2) {
+    const pkgName = args[1] ?? null
+    return { command, pkgName }
+  }
+  console.log(
+    [
+      // prettier-ignore
+      'Commands:',
+      '  $ pnpm exec devdep <npm-package-name>',
+      '  $ pnpm exec devdep clear [npm-package-name]'
+    ].join('\n')
+  )
+  process.exit(0)
 }
