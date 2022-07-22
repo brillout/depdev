@@ -16,19 +16,19 @@ async function install(pkgName: string) {
   await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
     cwd: './deps/',
     timeout: 15 * 1000,
-    printProgress: true
+    print: 'overview'
   })
 
   // `pnpm link` also runs `pnpm install`
   await runCommand(`pnpm link ${depDirAbsolute}`, {
     timeout: 120 * 1000,
-    printProgress: true
+    print: 'overview'
   })
 
   await runCommand('pnpm run dev', {
     cwd: depDirRelative,
-    timeout: 60 * 1000,
-    printProgress: true
+    timeout: null,
+    print: 'all'
   })
 }
 

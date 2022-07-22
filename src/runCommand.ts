@@ -1,6 +1,6 @@
 export { runCommand }
 
-import { exec, ExecException } from 'child_process'
+import { exec, spawn, ExecException } from 'child_process'
 import path from 'path'
 
 function runCommand(
@@ -9,48 +9,72 @@ function runCommand(
     swallowError,
     timeout = 5000,
     cwd = process.cwd(),
-    printProgress,
-  }: { swallowError?: true; timeout?: number; cwd?: string; printProgress?: true | string } = {},
-): Promise<string> {
-  const { promise, resolvePromise, rejectPromise } = genPromise<string>()
+    print
+  }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {}
+): Promise<null | string> {
+  const { promise, resolvePromise /*, rejectPromise*/ } = genPromise<null | string>()
 
   let cwdResolved = cwd
   if (cwdResolved.startsWith('.')) {
     cwdResolved = path.join(process.cwd(), cwdResolved)
   }
 
-  const t = setTimeout(() => {
-    rejectPromise(new Error(`Command \`${cmd}\` (cwd: ${cwdResolved}) timed out (after ${timeout / 1000} seconds).`))
-  }, timeout)
-
-  if (printProgress) {
-    process.stdout.write(`Running \`${cmd}\` (cwd: \`${cwd}\`)...`)
+  let resolveTimeout: undefined | (() => void)
+  if (timeout !== null) {
+    const t = setTimeout(() => {
+      onError(`Timeout (after ${timeout / 1000} seconds).`)
+    }, timeout)
+    resolveTimeout = () => clearTimeout(t)
   }
-  exec(cmd, { cwd: cwdResolved }, (err: ExecException | null, stdout, stderr) => {
-    clearTimeout(t)
-    if (err || stderr) {
-      if (swallowError) {
-        resolvePromise('SWALLOWED_ERROR')
+
+  const onError = (errMsg: string) => {
+    const err = new Error(
+      [
+        `Command \`${cmd}\` failed (cwd: ${cwdResolved}). Error:`,
+        `============== ERROR ==============`,
+        errMsg.trim(),
+        `===================================`
+      ].join('\n')
+    )
+    // rejectPromise(err)
+    console.error(err)
+    process.exit(1)
+  }
+
+  if (print === 'all') {
+    const [cmdProgramm, ...cmdOptions] = cmd.split(' ')
+    console.log(`=== Start \`${cmd}\` (cwd: \`${cwd}\`) ===`)
+    const proc = spawn(cmdProgramm, cmdOptions, { cwd: cwdResolved, stdio: 'inherit' })
+    proc.on('close', (code) => {
+      resolveTimeout?.()
+      if (code === 0) {
+        console.log(`=== Done \`${cmd}\` (cwd: \`${cwd}\`) ===`)
+        resolvePromise(null)
       } else {
-        const errMsg = stderr || err?.message || stdout
-        rejectPromise(
-          new Error(
-            [
-              `Command \`${cmd}\` (${cwdResolved}) failed. Error:`,
-              `============== ERROR ==============`,
-              errMsg.trim(),
-              `===================================`,
-            ].join('\n'),
-          ),
-        )
+        onError(`Command ${cmd} exited with code ${code}`)
       }
-    } else {
-      if (printProgress) {
-        console.log(' done')
-      }
-      resolvePromise(stdout)
+    })
+  } else {
+    if (print) {
+      process.stdout.write(`Running \`${cmd}\` (cwd: \`${cwd}\`)...`)
     }
-  })
+    exec(cmd, { cwd: cwdResolved }, (err: ExecException | null, stdout, stderr) => {
+      resolveTimeout?.()
+      if (err || stderr) {
+        if (swallowError) {
+          resolvePromise('SWALLOWED_ERROR')
+        } else {
+          const errMsg = stderr || err?.message || stdout
+          onError(errMsg)
+        }
+      } else {
+        if (print === 'overview') {
+          console.log(' done')
+        }
+        resolvePromise(stdout)
+      }
+    })
+  }
 
   return promise
 }
