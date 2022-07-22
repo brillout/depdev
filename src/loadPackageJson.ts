@@ -19,7 +19,7 @@ function loadPackageJson(pkgName: string): Record<string, unknown> {
 }
 
 function findAndLoad(pkgName: string): Record<string, unknown> {
-  // This won't work for npm pacakges that don't have any `main`, such as CLI npm packages like this one `@brillout/depdev`. (That's why we also use the simple technique of direclty loading `require(pkgName + '/pacakge.json')`.)
+  // This won't work for npm pacakges that don't have any `main`, such as CLI npm packages like this one `@brillout/dev-my-dep`. (That's why we also use the simple technique of direclty loading `require(pkgName + '/pacakge.json')`.)
   const depMain = require.resolve(pkgName)
   const dirStart = path.dirname(depMain)
   let dir = dirStart
