@@ -78,7 +78,7 @@ function showPkgVersionStatus(pkgName: string, pkgRepoDir: string) {
   const version = findPkgVersionLatest(pkgRepoDir)
   const { semver } = findPkgVersionCurrent(pkgName)
   assert(semver)
-  console.log(`Current version: ${pkgName}@${semver}`)
+  console.log(`Current semver: ${pkgName}@${semver}`)
   console.log(`Latest version: ${pkgName}@${version}`)
 }
 
