@@ -1,11 +1,11 @@
-export { install }
+export { link }
 
 import { loadPackageJson } from './loadPackageJson'
 import { runCommand } from './runCommand'
 import path from 'path'
 import { mkdirp } from './utils'
 
-async function install(pkgName: string) {
+async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
   const depDirRelative = `./deps/${repo}/`
   const depDirAbsolute = path.join(process.cwd(), depDirRelative)

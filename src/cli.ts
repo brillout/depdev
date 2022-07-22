@@ -1,10 +1,10 @@
-import { install } from './install'
+import { link } from './link'
 import { clear } from './clear'
 
 const { command, pkgName } = parseArgs()
 
 if (command === null) {
-  install(pkgName)
+  link(pkgName)
 }
 if (command === 'clear') {
   clear(pkgName)
