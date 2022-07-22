@@ -9,7 +9,7 @@ import path from 'path'
 import assert from 'assert'
 
 function loadPackageJson(pkgName: string): Record<string, unknown> {
-  // Works only if the npm package has no `package.json#exports`
+  // Works only if the npm package has no `package.json#exports`.
   try {
     return require(pkgName + '/package.json')
   } catch {}
@@ -19,6 +19,7 @@ function loadPackageJson(pkgName: string): Record<string, unknown> {
 }
 
 function findAndLoad(pkgName: string): Record<string, unknown> {
+  // This won't work for npm pacakges that don't have any `main`, such as CLI npm packages like this one `@brillout/depdev`. (That's why we also use the simple technique of direclty loading `require(pkgName + '/pacakge.json')`.)
   const depMain = require.resolve(pkgName)
   const dirStart = path.dirname(depMain)
   let dir = dirStart

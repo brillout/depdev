@@ -11,14 +11,14 @@ async function link(pkgName: string) {
   await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
     cwd: './deps/',
     timeout: 15 * 1000,
-    printProgress: true,
+    printProgress: true
   })
   //*/
   const depDirRelative = `./deps/${repo}/`
   const depDir = path.join(process.cwd(), depDirRelative)
   await runCommand(`pnpm link ${depDir}`, {
     timeout: 60 * 1000,
-    printProgress: true,
+    printProgress: true
   })
   /* Not need since `pnpm link` will run `pnpm install`
   await runCommand('pnpm install', {
@@ -34,7 +34,7 @@ function getGitRepo(pkgName: string) {
   const { repository } = pkgJson
   if (typeof repository !== 'string') {
     throw new Error(
-      `The \`package.json\` of the npm package \`${pkgName}\` is missing the \`package.json#repository\` field.`,
+      `The \`package.json\` of the npm package \`${pkgName}\` is missing the \`package.json#repository\` field.`
     )
   }
   const gitRepo = parsePackageJsonRepository(repository, pkgName)
@@ -42,12 +42,19 @@ function getGitRepo(pkgName: string) {
 }
 
 function parsePackageJsonRepository(repository: string, pkgName: string): { owner: string; repo: string } {
-  const wrongFormat = `The \`package.json#repository\` value of \`${pkgName}\` is \`${repository}\` but only values with the format \`https://github.com/{owner}/{repo}\` are supported. PR welcome to add support for more formats.`
-  const prefix = 'https://github.com/'
-  if (!repository.startsWith(prefix)) {
+  const wrongFormat = `The \`package.json#repository\` value of \`${pkgName}\` is \`${repository}\` but only values with the format \`https://github.com/\${owner}/\${repo}\` or \`github:\${owner}\`:\${repo}\` are supported. PR welcome to add support for more formats.`
+
+  let repoPath: string | null = null
+  for (const prefix of ['https://github.com/', 'github:']) {
+    if (repository.startsWith(prefix)) {
+      repoPath = repository.slice(prefix.length)
+    }
+  }
+  if (!repoPath) {
     throw new Error(wrongFormat)
   }
-  const paths = repository.slice(prefix.length).split('/')
+
+  const paths = repoPath.split('/')
   if (paths.length !== 2) {
     throw new Error(wrongFormat)
   }
