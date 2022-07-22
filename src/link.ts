@@ -8,6 +8,8 @@ import assert from 'assert'
 import { mkdirp } from './utils'
 
 async function link(pkgName: string) {
+  checkPkgIsDep(pkgName)
+
   const workspaceRoot = findWorkspaceRoot()
 
   const pnpmLockFile = path.join(workspaceRoot, 'pnpm-lock.yaml')
@@ -74,7 +76,8 @@ async function link(pkgName: string) {
 
 function showPkgVersionStatus(pkgName: string, pkgRepoDir: string) {
   const version = findPkgVersionLatest(pkgRepoDir)
-  const semver = findPkgVersionCurrent(pkgName)
+  const { semver } = findPkgVersionCurrent(pkgName)
+  assert(semver)
   console.log(`Current version: ${pkgName}@${semver}`)
   console.log(`Latest version: ${pkgName}@${version}`)
 }
@@ -93,15 +96,22 @@ function findPkgVersionCurrent(pkgName: string) {
   const pkgJson = require(pkgJsonPath)
   const dependencies: Record<string, string> = pkgJson.dependencies
   const devDependencies: Record<string, string> = pkgJson.devDependencies
-  for (const dep of [...Object.entries(dependencies), ...Object.entries(devDependencies)]) {
-    const [depName, depSemver] = dep
+  for (const dep of [...Object.entries(dependencies || {}), ...Object.entries(devDependencies || {})]) {
+    const [depName, semver] = dep
     if (depName === pkgName) {
-      return depSemver
+      return { pkgJsonPath, semver }
     }
   }
-  throw new Error(
-    `Couldn't find dependency ${pkgName} in \`package.json#dependencies\` nor \`package.json#devDependencies\` of ${pkgJsonPath}`,
-  )
+  return { pkgJsonPath, semver: null }
+}
+
+function checkPkgIsDep(pkgName: string) {
+  const { semver, pkgJsonPath } = findPkgVersionCurrent(pkgName)
+  if (semver === null) {
+    throw new Error(
+      `Couldn't find \`${pkgName}\` in \`package.json#dependencies\` nor \`package.json#devDependencies\` of ${pkgJsonPath}`,
+    )
+  }
 }
 
 function getSymlinkTarget(pkgLink: string): string | null {
