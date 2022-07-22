@@ -7,28 +7,29 @@ import { mkdirp } from './utils'
 
 async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
+  const depDirRelative = `./deps/${repo}/`
+  const depDirAbsolute = path.join(process.cwd(), depDirRelative)
+
   mkdirp('deps')
+
   // `-q` to avoid `git clone` to write progress messages to stderr, see https://stackoverflow.com/questions/32685568/git-clone-writes-to-sderr-fine-but-why-cant-i-redirect-to-stdout
-  //*
   await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
     cwd: './deps/',
     timeout: 15 * 1000,
     printProgress: true
   })
-  //*/
-  const depDirRelative = `./deps/${repo}/`
-  const depDir = path.join(process.cwd(), depDirRelative)
-  await runCommand(`pnpm link ${depDir}`, {
+
+  // `pnpm link` also runs `pnpm install`
+  await runCommand(`pnpm link ${depDirAbsolute}`, {
+    timeout: 120 * 1000,
+    printProgress: true
+  })
+
+  await runCommand('pnpm run dev', {
+    cwd: depDirRelative,
     timeout: 60 * 1000,
     printProgress: true
   })
-  /* Not need since `pnpm link` will run `pnpm install`
-  await runCommand('pnpm install', {
-    cwd: depDirRelative,
-    timeout: 60 * 1000,
-    printProgress: true,
-  })
-  */
 }
 
 function getGitRepo(pkgName: string) {
