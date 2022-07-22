@@ -8,8 +8,18 @@ export { loadPackageJson }
 import path from 'path'
 import assert from 'assert'
 
-function loadPackageJson(dep: string): Record<string, unknown> {
-  const depMain = require.resolve(dep)
+function loadPackageJson(pkgName: string): Record<string, unknown> {
+  // Works only if the npm package has no `package.json#exports`
+  try {
+    return require(pkgName + '/package.json')
+  } catch {}
+
+  // Workaround if npm package has `package.json#exports`
+  return findAndLoad(pkgName)
+}
+
+function findAndLoad(pkgName: string): Record<string, unknown> {
+  const depMain = require.resolve(pkgName)
   const dirStart = path.dirname(depMain)
   let dir = dirStart
   while (true) {
