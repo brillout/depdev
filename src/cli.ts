@@ -24,8 +24,8 @@ function parseArgs(): { command: null; pkgName: string } | { command: 'clear'; p
     [
       // prettier-ignore
       'Commands:',
-      '  $ pnpm exec devdep <npm-package-name>',
-      '  $ pnpm exec devdep clear [npm-package-name]'
+      '  $ pnpm exec depdev <npm-package-name>',
+      '  $ pnpm exec depdev clear [npm-package-name]'
     ].join('\n')
   )
   process.exit(0)
