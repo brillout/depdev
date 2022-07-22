@@ -16,7 +16,7 @@ async function link(pkgName: string) {
   }
   const lockFileIsDirty = async () => (await runCommand(`git status --porcelain ${pnpmLockFile}`)) !== ''
   if (await lockFileIsDirty()) {
-    throw new Error(`\`pnpm-lock.yaml\` is dirty: make sure \`pnpm-lock.yaml\` has no uncommitted changes (${pnpmLockFile})`)
+    throw new Error(`\`pnpm-lock.yaml\` is dirty. Make sure \`pnpm-lock.yaml\` (${pnpmLockFile}) has no uncommitted changes.`)
   }
 
   mkdirp('deps', workspaceRoot)
