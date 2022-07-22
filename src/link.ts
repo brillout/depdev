@@ -24,33 +24,33 @@ async function link(pkgName: string) {
   mkdirp('deps', workspaceRoot)
 
   const { owner, repo } = getGitRepo(pkgName)
-  const pkgDir = path.join(workspaceRoot, `./deps/${repo}/`)
+  const pkgRepoDir = path.join(workspaceRoot, `./deps/${repo}/`)
 
-  if (!fs.existsSync(pkgDir)) {
+  if (!fs.existsSync(pkgRepoDir)) {
     await runCommand(`git clone git@github.com:${owner}/${repo}`, {
       cwd: path.join(workspaceRoot, `./deps/`),
       timeout: 15 * 1000,
       print: 'overview',
     })
   } else {
-    const cwd = pkgDir
+    const cwd = pkgRepoDir
     const stdout = await runCommand(`git status --porcelain`, { cwd })
     assert(stdout !== null)
     const isDirty = stdout !== ''
     if (isDirty) {
-      console.log(`Uncommitted changes at ${pkgDir}`)
+      console.log(`Uncommitted changes at ${pkgRepoDir}`)
     } else {
       const print = 'overview'
       await runCommand(`git fetch`, { cwd, print, timeout: 15 * 1000 })
       await runCommand(`git merge`, { cwd, print })
     }
   }
-  assert(fs.existsSync(pkgDir))
+  assert(fs.existsSync(pkgRepoDir))
 
   assert(!(await lockFileIsDirty()))
   const pkgLink = path.join(process.cwd(), 'node_modules', pkgName)
   if (!getSymlinkTarget(pkgLink)) {
-    await runCommand(`pnpm link ${pkgDir}`, {
+    await runCommand(`pnpm link ${pkgRepoDir}`, {
       timeout: 120 * 1000,
       print: 'overview',
     })
@@ -67,6 +67,40 @@ async function link(pkgName: string) {
       path.dirname(pkgLink),
       linkTarget,
     )})`,
+  )
+
+  showPkgVersionStatus(pkgName, pkgRepoDir)
+}
+
+function showPkgVersionStatus(pkgName: string, pkgRepoDir: string) {
+  const version = findPkgVersionLatest(pkgRepoDir)
+  const semver = findPkgVersionCurrent(pkgName)
+  console.log(`Current version: ${pkgName}@${semver}`)
+  console.log(`Latest version: ${pkgName}@${version}`)
+}
+
+function findPkgVersionLatest(pkgRepoDir: string) {
+  const pkgJsonPath = path.join(pkgRepoDir, 'package.json')
+  const pkgJson = require(pkgJsonPath)
+  const { version } = pkgJson
+  assert(version)
+  assert(typeof version === 'string')
+  return version
+}
+
+function findPkgVersionCurrent(pkgName: string) {
+  const pkgJsonPath = path.join(process.cwd(), 'package.json')
+  const pkgJson = require(pkgJsonPath)
+  const dependencies: Record<string, string> = pkgJson.dependencies
+  const devDependencies: Record<string, string> = pkgJson.devDependencies
+  for (const dep of [...Object.entries(dependencies), ...Object.entries(devDependencies)]) {
+    const [depName, depSemver] = dep
+    if (depName === pkgName) {
+      return depSemver
+    }
+  }
+  throw new Error(
+    `Couldn't find dependency ${pkgName} in \`package.json#dependencies\` nor \`package.json#devDependencies\` of ${pkgJsonPath}`,
   )
 }
 
