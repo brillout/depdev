@@ -48,19 +48,34 @@ async function link(pkgName: string) {
   assert(fs.existsSync(pkgDir))
 
   assert(!(await lockFileIsDirty()))
-  await runCommand(`pnpm link ${pkgDir}`, {
-    timeout: 120 * 1000,
-    print: 'overview',
-  })
-  await runCommand(`git checkout ${pnpmLockFile}`)
-  assert(!(await lockFileIsDirty()))
-
   const pkgLink = path.join(process.cwd(), 'node_modules', pkgName)
+  if (!getSymlinkTarget(pkgLink)) {
+    await runCommand(`pnpm link ${pkgDir}`, {
+      timeout: 120 * 1000,
+      print: 'overview',
+    })
+    await runCommand(`git checkout ${pnpmLockFile}`)
+    assert(!(await lockFileIsDirty()))
+    if (!getSymlinkTarget(pkgLink)) {
+      throw new Error(`Something went wrong: ${pkgLink} should be a symlink but it isn't.`)
+    }
+  }
+  const linkTarget = getSymlinkTarget(pkgLink)
+  assert(linkTarget)
+  console.log(
+    `Symlink: ${path.relative(process.cwd(), pkgLink)} -> ${linkTarget} (${pkgLink} -> ${path.resolve(
+      path.dirname(pkgLink),
+      linkTarget,
+    )})`,
+  )
+}
+
+function getSymlinkTarget(pkgLink: string): string | null {
   if (!fs.lstatSync(pkgLink).isSymbolicLink()) {
-    throw new Error(`Something went wrong: ${pkgLink} should be a symlink but it isn't.`)
+    return null
   }
   const linkTarget = fs.readlinkSync(pkgLink)
-  console.log(`Symlink: ${pkgLink} -> ${linkTarget}`)
+  return linkTarget
 }
 
 function findWorkspaceRoot(): string {
