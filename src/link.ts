@@ -28,7 +28,8 @@ async function link(pkgName: string) {
   const { owner, repo } = getGitRepo(pkgName)
   const pkgRepoDir = path.join(workspaceRoot, `./deps/${repo}/`)
 
-  if (!fs.existsSync(pkgRepoDir)) {
+  const gitRepoAlreadyFetched = fs.existsSync(pkgRepoDir)
+  if (!gitRepoAlreadyFetched) {
     await runCommand(`git clone git@github.com:${owner}/${repo}`, {
       cwd: path.join(workspaceRoot, `./deps/`),
       timeout: 15 * 1000,
@@ -51,7 +52,11 @@ async function link(pkgName: string) {
 
   assert(!(await lockFileIsDirty()))
   const pkgLink = path.join(process.cwd(), 'node_modules', pkgName)
-  if (!getSymlinkTarget(pkgLink)) {
+  if (
+    !getSymlinkTarget(pkgLink) ||
+    // We run `pnpm link` in order to install dependencies of `pkgName`
+    !gitRepoAlreadyFetched
+  ) {
     await runCommand(`pnpm link ${pkgRepoDir}`, {
       timeout: 120 * 1000,
       print: 'overview',
