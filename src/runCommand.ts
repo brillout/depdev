@@ -9,8 +9,8 @@ function runCommand(
     swallowError,
     timeout = 5000,
     cwd = process.cwd(),
-    print
-  }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {}
+    print,
+  }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {},
 ): Promise<null | string> {
   const { promise, resolvePromise /*, rejectPromise*/ } = genPromise<null | string>()
 
@@ -33,8 +33,8 @@ function runCommand(
         `Command \`${cmd}\` failed (cwd: ${cwdResolved}). Error:`,
         `============== ERROR ==============`,
         errMsg.trim(),
-        `===================================`
-      ].join('\n')
+        `===================================`,
+      ].join('\n'),
     )
     // rejectPromise(err)
     console.error(err)
@@ -60,7 +60,11 @@ function runCommand(
     }
     exec(cmd, { cwd: cwdResolved }, (err: ExecException | null, stdout, stderr) => {
       resolveTimeout?.()
-      if (err || stderr) {
+      // err !== null <=> exit status !== 0
+      //  - https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command/43077917#43077917
+      //  - For some commands, such as `git`: `stderr !== ''` doesn't mean that command failed
+      //    - https://stackoverflow.com/questions/57016157/how-to-stop-git-from-writing-non-errors-to-stderr/57016167#57016167
+      if (err !== null) {
         if (swallowError) {
           resolvePromise('SWALLOWED_ERROR')
         } else {

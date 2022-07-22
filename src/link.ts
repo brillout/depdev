@@ -16,7 +16,9 @@ async function link(pkgName: string) {
   }
   const lockFileIsDirty = async () => (await runCommand(`git status --porcelain ${pnpmLockFile}`)) !== ''
   if (await lockFileIsDirty()) {
-    throw new Error(`\`pnpm-lock.yaml\` is dirty. Make sure \`pnpm-lock.yaml\` (${pnpmLockFile}) has no uncommitted changes.`)
+    throw new Error(
+      `\`pnpm-lock.yaml\` is dirty. Make sure \`pnpm-lock.yaml\` (${pnpmLockFile}) has no uncommitted changes.`,
+    )
   }
 
   mkdirp('deps', workspaceRoot)
@@ -25,11 +27,10 @@ async function link(pkgName: string) {
   const pkgDir = path.join(workspaceRoot, `./deps/${repo}/`)
 
   if (!fs.existsSync(pkgDir)) {
-    // `-q` to avoid `git clone` to write progress messages to stderr, see https://stackoverflow.com/questions/32685568/git-clone-writes-to-sderr-fine-but-why-cant-i-redirect-to-stdout
-    await runCommand(`git clone git@github.com:${owner}/${repo} -q`, {
+    await runCommand(`git clone git@github.com:${owner}/${repo}`, {
       cwd: path.join(workspaceRoot, `./deps/`),
       timeout: 15 * 1000,
-      print: 'overview'
+      print: 'overview',
     })
   } else {
     const cwd = pkgDir
@@ -50,7 +51,7 @@ async function link(pkgName: string) {
   // `pnpm link` also runs `pnpm install`
   await runCommand(`pnpm link ${pkgDir}`, {
     timeout: 120 * 1000,
-    print: 'overview'
+    print: 'overview',
   })
   await runCommand(`git checkout ${pnpmLockFile}`)
   assert(!(await lockFileIsDirty()))
@@ -87,7 +88,7 @@ function getGitRepo(pkgName: string) {
   const { repository } = pkgJson
   if (typeof repository !== 'string') {
     throw new Error(
-      `The \`package.json\` of the npm package \`${pkgName}\` is missing the \`package.json#repository\` field.`
+      `The \`package.json\` of the npm package \`${pkgName}\` is missing the \`package.json#repository\` field.`,
     )
   }
   const gitRepo = parsePackageJsonRepository(repository, pkgName)
