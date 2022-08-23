@@ -8,24 +8,30 @@ export { loadPackageJson }
 import path from 'path'
 import assert from 'assert'
 
-function loadPackageJson(pkgName: string): Record<string, unknown> {
+function loadPackageJson(pkgName: string): { packageJson: Record<string, unknown>; packageJsonPath: string } {
+  let packageJsonPath: string | null = null
   // Works only if the npm package has no `package.json#exports`.
   try {
-    return require(pkgName + '/package.json')
+    packageJsonPath = require.resolve(pkgName + '/package.json')
   } catch {}
+  if (!packageJsonPath) {
+    // Workaround if npm package has `package.json#exports`
+    packageJsonPath = findAndLoad(pkgName)
+  }
 
-  // Workaround if npm package has `package.json#exports`
-  return findAndLoad(pkgName)
+  const packageJson = require(packageJsonPath)
+
+  return { packageJson, packageJsonPath }
 }
 
-function findAndLoad(pkgName: string): Record<string, unknown> {
+function findAndLoad(pkgName: string): string {
   // This won't work for npm pacakges that don't have any `main`, such as CLI npm packages like this one `@brillout/dev-my-dep`. (That's why we also use the simple technique of direclty loading `require(pkgName + '/pacakge.json')`.)
   const depMain = require.resolve(pkgName)
   const dirStart = path.dirname(depMain)
   let dir = dirStart
   while (true) {
     try {
-      return require(path.join(dir, 'package.json'))
+      return require.resolve(path.join(dir, 'package.json'))
     } catch {}
     const dirNew = path.dirname(dir)
     if (dirNew === dir) {

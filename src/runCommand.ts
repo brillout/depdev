@@ -1,7 +1,9 @@
 export { runCommand }
+export { setProjectRoot }
 
 import { exec, spawn, ExecException } from 'child_process'
 import path from 'path'
+import { pathRelativeFromProjectRoot } from './utils'
 
 function runCommand(
   cmd: string,
@@ -18,6 +20,7 @@ function runCommand(
   if (cwdResolved.startsWith('.')) {
     cwdResolved = path.join(process.cwd(), cwdResolved)
   }
+  const cwdHumanReadable = !projectRoot ? cwd : pathRelativeFromProjectRoot(projectRoot, cwdResolved)
 
   let resolveTimeout: undefined | (() => void)
   if (timeout !== null) {
@@ -30,7 +33,7 @@ function runCommand(
   const onError = (errMsg: string) => {
     const err = new Error(
       [
-        `Command \`${cmd}\` failed (cwd: ${cwdResolved}). Error:`,
+        `Command \`${cmd}\` failed (cwd: ${cwdHumanReadable}). Error:`,
         `============== ERROR ==============`,
         errMsg.trim(),
         `===================================`,
@@ -43,12 +46,12 @@ function runCommand(
 
   if (print === 'all') {
     const [cmdProgramm, ...cmdOptions] = cmd.split(' ')
-    console.log(`=== Start \`${cmd}\` (cwd: \`${cwd}\`) ===`)
+    console.log(`=== Start \`${cmd}\` (cwd \`${cwdHumanReadable}\`) ===`)
     const proc = spawn(cmdProgramm, cmdOptions, { cwd: cwdResolved, stdio: 'inherit' })
     proc.on('close', (code) => {
       resolveTimeout?.()
       if (code === 0) {
-        console.log(`=== Done \`${cmd}\` (cwd: \`${cwd}\`) ===`)
+        console.log(`=== Done \`${cmd}\` (cwd \`${cwdHumanReadable}\`) ===`)
         resolvePromise(null)
       } else {
         onError(`Command ${cmd} exited with code ${code}`)
@@ -56,7 +59,7 @@ function runCommand(
     })
   } else {
     if (print) {
-      process.stdout.write(`Running \`${cmd}\` (cwd: \`${cwd}\`)...`)
+      process.stdout.write(`${cmd} (cwd \`${cwdHumanReadable}\`)...`)
     }
     exec(cmd, { cwd: cwdResolved }, (err: ExecException | null, stdout, stderr) => {
       resolveTimeout?.()
@@ -81,6 +84,11 @@ function runCommand(
   }
 
   return promise
+}
+
+let projectRoot: string | null = null
+function setProjectRoot(projectRoot_: string) {
+  projectRoot = projectRoot_
 }
 
 function genPromise<T>() {

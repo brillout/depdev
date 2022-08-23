@@ -1,16 +1,17 @@
 export { link }
 
 import { loadPackageJson } from './loadPackageJson'
-import { runCommand } from './runCommand'
+import { runCommand, setProjectRoot } from './runCommand'
 import path from 'path'
 import fs from 'fs'
 import assert from 'assert'
-import { mkdirp } from './utils'
+import { mkdirp, pathRelativeFromProjectRoot } from './utils'
 
 async function link(pkgName: string) {
   checkPkgIsDep(pkgName)
 
   const workspaceRoot = findWorkspaceRoot()
+  setProjectRoot(workspaceRoot)
 
   const pnpmLockFile = path.join(workspaceRoot, 'pnpm-lock.yaml')
   if (!fs.existsSync(pnpmLockFile)) {
@@ -51,9 +52,9 @@ async function link(pkgName: string) {
   assert(fs.existsSync(pkgRepoDir))
 
   assert(!(await lockFileIsDirty()))
-  const pkgLink = path.join(process.cwd(), 'node_modules', pkgName)
+  const symlinkSource = path.join(process.cwd(), 'node_modules', pkgName)
   if (
-    !getSymlinkTarget(pkgLink) ||
+    !getSymlink(symlinkSource) ||
     // We run `pnpm link` in order to install dependencies of `pkgName`
     !gitRepoAlreadyFetched
   ) {
@@ -63,18 +64,18 @@ async function link(pkgName: string) {
     })
     await runCommand(`git checkout ${pnpmLockFile}`)
     assert(!(await lockFileIsDirty()))
-    if (!getSymlinkTarget(pkgLink)) {
-      throw new Error(`Something went wrong: ${pkgLink} should be a symlink but it isn't.`)
+    if (!getSymlink(symlinkSource)) {
+      throw new Error(`Something went wrong: ${symlinkSource} should be a symlink but it isn't.`)
     }
   }
-  const linkTarget = getSymlinkTarget(pkgLink)
-  assert(linkTarget)
-  console.log(
-    `Symlink: ${path.relative(process.cwd(), pkgLink)} -> ${linkTarget} (${pkgLink} -> ${path.resolve(
-      path.dirname(pkgLink),
-      linkTarget,
-    )})`,
-  )
+  {
+    const symlink = getSymlink(symlinkSource)
+    assert(symlink)
+    const { symlinkTarget } = symlink
+    const sourcePath = pathRelativeFromProjectRoot(workspaceRoot, symlinkSource)
+    const targetPath = pathRelativeFromProjectRoot(workspaceRoot, symlinkTarget)
+    console.log(`Symlink: ${targetPath} <- ${sourcePath}`)
+  }
 
   showPkgVersionStatus(pkgName, pkgRepoDir)
 }
@@ -114,17 +115,18 @@ function checkPkgIsDep(pkgName: string) {
   const { semver, pkgJsonPath } = findPkgVersionCurrent(pkgName)
   if (semver === null) {
     throw new Error(
-      `Couldn't find \`${pkgName}\` in \`package.json#dependencies\` nor \`package.json#devDependencies\` of ${pkgJsonPath}`,
+      `\`${pkgName}\` missing in \`package.json#dependencies\`/\`package.json#devDependencies\` of ${pkgJsonPath}`,
     )
   }
 }
 
-function getSymlinkTarget(pkgLink: string): string | null {
-  if (!fs.lstatSync(pkgLink).isSymbolicLink()) {
+function getSymlink(symlinkSource: string): null | { symlinkValue: string; symlinkTarget: string } {
+  if (!fs.lstatSync(symlinkSource).isSymbolicLink()) {
     return null
   }
-  const linkTarget = fs.readlinkSync(pkgLink)
-  return linkTarget
+  const symlinkValue = fs.readlinkSync(symlinkSource)
+  const symlinkTarget = path.resolve(path.dirname(symlinkSource), symlinkValue)
+  return { symlinkValue, symlinkTarget }
 }
 
 function findWorkspaceRoot(): string {
@@ -146,12 +148,10 @@ function getFilesystemRoot() {
 }
 
 function getGitRepo(pkgName: string) {
-  const pkgJson = loadPackageJson(pkgName)
-  const { repository } = pkgJson
+  const { packageJson, packageJsonPath } = loadPackageJson(pkgName)
+  const { repository } = packageJson
   if (typeof repository !== 'string') {
-    throw new Error(
-      `The \`package.json\` of the npm package \`${pkgName}\` is missing the \`package.json#repository\` field.`,
-    )
+    throw new Error(`Missing \`package.json#repository\` at ${packageJsonPath}`)
   }
   const gitRepo = parsePackageJsonRepository(repository, pkgName)
   return gitRepo
