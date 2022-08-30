@@ -27,7 +27,7 @@ async function link(depName: string) {
   mkdirp('deps', workspaceRoot)
 
   const { owner, repo } = getGitRepo(depName)
-  const depRepoDir = path.join(workspaceRoot, `./deps/${repo}/`)
+  const depRepoDir = path.join(workspaceRoot, `./deps/${repo}`)
 
   const gitRepoAlreadyFetched = fs.existsSync(depRepoDir)
   if (!gitRepoAlreadyFetched) {
@@ -42,7 +42,7 @@ async function link(depName: string) {
     assert(stdout !== null)
     const isDirty = stdout !== ''
     if (isDirty) {
-      console.log(`Uncommitted changes at ${depRepoDir}`)
+      console.log(`Uncommitted changes at ${depRepoDir}/`)
     } else {
       const print = 'overview'
       await runCommand(`git fetch`, { cwd, print, timeout: 15 * 1000 })
@@ -55,8 +55,9 @@ async function link(depName: string) {
   const symlinkSource = path.join(process.cwd(), 'node_modules', depName)
   let symlink = getSymlink(symlinkSource)
   if (
-    !getSymlink(symlinkSource) ||
+    !symlink ||
     // We run `pnpm link` in order to install dependencies of `depName`
+    symlink.symlinkTarget !== depRepoDir ||
     !gitRepoAlreadyFetched
   ) {
     await runCommand(`pnpm link ${depRepoDir}`, {
