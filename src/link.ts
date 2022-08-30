@@ -123,7 +123,13 @@ function assertIsDep(depName: string) {
 }
 
 function getSymlink(symlinkSource: string): null | { symlinkValue: string; symlinkTarget: string } {
-  if (!fs.lstatSync(symlinkSource).isSymbolicLink()) {
+  let stat: fs.Stats
+  try {
+    stat = fs.lstatSync(symlinkSource)
+  } catch {
+    return null
+  }
+  if (!stat.isSymbolicLink()) {
     return null
   }
   const symlinkValue = fs.readlinkSync(symlinkSource)
