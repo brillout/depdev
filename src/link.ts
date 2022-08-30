@@ -53,6 +53,7 @@ async function link(pkgName: string) {
 
   assert(!(await lockFileIsDirty()))
   const symlinkSource = path.join(process.cwd(), 'node_modules', pkgName)
+  let symlink = getSymlink(symlinkSource)
   if (
     !getSymlink(symlinkSource) ||
     // We run `pnpm link` in order to install dependencies of `pkgName`
@@ -64,12 +65,12 @@ async function link(pkgName: string) {
     })
     await runCommand(`git checkout ${pnpmLockFile}`)
     assert(!(await lockFileIsDirty()))
-    if (!getSymlink(symlinkSource)) {
+    symlink = getSymlink(symlinkSource)
+    if (!symlink) {
       throw new Error(`Something went wrong: ${symlinkSource} should be a symlink but it isn't.`)
     }
   }
   {
-    const symlink = getSymlink(symlinkSource)
     assert(symlink)
     const { symlinkTarget } = symlink
     const sourcePath = pathRelativeFromProjectRoot(workspaceRoot, symlinkSource)
