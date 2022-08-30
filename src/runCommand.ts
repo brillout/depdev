@@ -11,8 +11,8 @@ function runCommand(
     swallowError,
     timeout = 5000,
     cwd = process.cwd(),
-    print,
-  }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {},
+    print
+  }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {}
 ): Promise<null | string> {
   const { promise, resolvePromise /*, rejectPromise*/ } = genPromise<null | string>()
 
@@ -36,8 +36,8 @@ function runCommand(
         `Command \`${cmd}\` failed (cwd: ${cwdHumanReadable}). Error:`,
         `============== ERROR ==============`,
         errMsg.trim(),
-        `===================================`,
-      ].join('\n'),
+        `===================================`
+      ].join('\n')
     )
     // rejectPromise(err)
     console.error(err)

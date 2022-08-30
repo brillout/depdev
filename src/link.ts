@@ -20,7 +20,7 @@ async function link(pkgName: string) {
   const lockFileIsDirty = async () => (await runCommand(`git status --porcelain ${pnpmLockFile}`)) !== ''
   if (await lockFileIsDirty()) {
     throw new Error(
-      `\`pnpm-lock.yaml\` is dirty. Make sure \`pnpm-lock.yaml\` (${pnpmLockFile}) has no uncommitted changes.`,
+      `\`pnpm-lock.yaml\` is dirty. Make sure \`pnpm-lock.yaml\` (${pnpmLockFile}) has no uncommitted changes.`
     )
   }
 
@@ -34,7 +34,7 @@ async function link(pkgName: string) {
     await runCommand(`git clone git@github.com:${owner}/${repo}`, {
       cwd: path.join(workspaceRoot, `./deps/`),
       timeout: 15 * 1000,
-      print: 'overview',
+      print: 'overview'
     })
   } else {
     const cwd = pkgRepoDir
@@ -61,7 +61,7 @@ async function link(pkgName: string) {
   ) {
     await runCommand(`pnpm link ${pkgRepoDir}`, {
       timeout: 120 * 1000,
-      print: 'overview',
+      print: 'overview'
     })
     await runCommand(`git checkout ${pnpmLockFile}`)
     assert(!(await lockFileIsDirty()))
@@ -116,7 +116,7 @@ function checkPkgIsDep(pkgName: string) {
   const { semver, pkgJsonPath } = findPkgVersionCurrent(pkgName)
   if (semver === null) {
     throw new Error(
-      `\`${pkgName}\` missing in \`package.json#dependencies\`/\`package.json#devDependencies\` of ${pkgJsonPath}`,
+      `\`${pkgName}\` missing in \`package.json#dependencies\`/\`package.json#devDependencies\` of ${pkgJsonPath}`
     )
   }
 }
