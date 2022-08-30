@@ -7,8 +7,8 @@ import fs from 'fs'
 import assert from 'assert'
 import { mkdirp, pathRelativeFromProjectRoot } from './utils'
 
-async function link(pkgName: string) {
-  checkPkgIsDep(pkgName)
+async function link(depName: string) {
+  assertIsDep(depName)
 
   const workspaceRoot = findWorkspaceRoot()
   setProjectRoot(workspaceRoot)
@@ -26,10 +26,10 @@ async function link(pkgName: string) {
 
   mkdirp('deps', workspaceRoot)
 
-  const { owner, repo } = getGitRepo(pkgName)
-  const pkgRepoDir = path.join(workspaceRoot, `./deps/${repo}/`)
+  const { owner, repo } = getGitRepo(depName)
+  const depRepoDir = path.join(workspaceRoot, `./deps/${repo}/`)
 
-  const gitRepoAlreadyFetched = fs.existsSync(pkgRepoDir)
+  const gitRepoAlreadyFetched = fs.existsSync(depRepoDir)
   if (!gitRepoAlreadyFetched) {
     await runCommand(`git clone git@github.com:${owner}/${repo}`, {
       cwd: path.join(workspaceRoot, `./deps/`),
@@ -37,29 +37,29 @@ async function link(pkgName: string) {
       print: 'overview'
     })
   } else {
-    const cwd = pkgRepoDir
+    const cwd = depRepoDir
     const stdout = await runCommand(`git status --porcelain`, { cwd })
     assert(stdout !== null)
     const isDirty = stdout !== ''
     if (isDirty) {
-      console.log(`Uncommitted changes at ${pkgRepoDir}`)
+      console.log(`Uncommitted changes at ${depRepoDir}`)
     } else {
       const print = 'overview'
       await runCommand(`git fetch`, { cwd, print, timeout: 15 * 1000 })
       await runCommand(`git merge`, { cwd, print })
     }
   }
-  assert(fs.existsSync(pkgRepoDir))
+  assert(fs.existsSync(depRepoDir))
 
   assert(!(await lockFileIsDirty()))
-  const symlinkSource = path.join(process.cwd(), 'node_modules', pkgName)
+  const symlinkSource = path.join(process.cwd(), 'node_modules', depName)
   let symlink = getSymlink(symlinkSource)
   if (
     !getSymlink(symlinkSource) ||
-    // We run `pnpm link` in order to install dependencies of `pkgName`
+    // We run `pnpm link` in order to install dependencies of `depName`
     !gitRepoAlreadyFetched
   ) {
-    await runCommand(`pnpm link ${pkgRepoDir}`, {
+    await runCommand(`pnpm link ${depRepoDir}`, {
       timeout: 120 * 1000,
       print: 'overview'
     })
@@ -78,19 +78,19 @@ async function link(pkgName: string) {
     console.log(`Symlink: ${targetPath} <- ${sourcePath}`)
   }
 
-  showPkgVersionStatus(pkgName, pkgRepoDir)
+  showDepVersion(depName, depRepoDir)
 }
 
-function showPkgVersionStatus(pkgName: string, pkgRepoDir: string) {
-  const version = findPkgVersionLatest(pkgRepoDir)
-  const { semver } = findPkgVersionCurrent(pkgName)
+function showDepVersion(depName: string, depRepoDir: string) {
+  const version = findDepVersionLatest(depRepoDir)
+  const { semver } = findDepVersionCurrent(depName)
   assert(semver)
-  console.log(`Current semver: ${pkgName}@${semver}`)
-  console.log(`Latest version: ${pkgName}@${version}`)
+  console.log(`Current semver: ${depName}@${semver}`)
+  console.log(`Latest version: ${depName}@${version}`)
 }
 
-function findPkgVersionLatest(pkgRepoDir: string) {
-  const pkgJsonPath = path.join(pkgRepoDir, 'package.json')
+function findDepVersionLatest(depRepoDir: string) {
+  const pkgJsonPath = path.join(depRepoDir, 'package.json')
   const pkgJson = require(pkgJsonPath)
   const { version } = pkgJson
   assert(version)
@@ -98,25 +98,25 @@ function findPkgVersionLatest(pkgRepoDir: string) {
   return version
 }
 
-function findPkgVersionCurrent(pkgName: string) {
+function findDepVersionCurrent(depName: string) {
   const pkgJsonPath = path.join(process.cwd(), 'package.json')
   const pkgJson = require(pkgJsonPath)
   const dependencies: Record<string, string> = pkgJson.dependencies
   const devDependencies: Record<string, string> = pkgJson.devDependencies
   for (const dep of [...Object.entries(dependencies || {}), ...Object.entries(devDependencies || {})]) {
-    const [depName, semver] = dep
-    if (depName === pkgName) {
+    const [name, semver] = dep
+    if (name === depName) {
       return { pkgJsonPath, semver }
     }
   }
   return { pkgJsonPath, semver: null }
 }
 
-function checkPkgIsDep(pkgName: string) {
-  const { semver, pkgJsonPath } = findPkgVersionCurrent(pkgName)
+function assertIsDep(depName: string) {
+  const { semver, pkgJsonPath } = findDepVersionCurrent(depName)
   if (semver === null) {
     throw new Error(
-      `\`${pkgName}\` missing in \`package.json#dependencies\`/\`package.json#devDependencies\` of ${pkgJsonPath}`
+      `\`${depName}\` missing in \`package.json#dependencies\`/\`package.json#devDependencies\` of ${pkgJsonPath}`
     )
   }
 }
@@ -148,18 +148,18 @@ function getFilesystemRoot() {
   return path.parse(process.cwd()).root
 }
 
-function getGitRepo(pkgName: string) {
-  const { packageJson, packageJsonPath } = loadPackageJson(pkgName)
+function getGitRepo(depName: string) {
+  const { packageJson, packageJsonPath } = loadPackageJson(depName)
   const { repository } = packageJson
   if (typeof repository !== 'string') {
     throw new Error(`Missing \`package.json#repository\` at ${packageJsonPath}`)
   }
-  const gitRepo = parsePackageJsonRepository(repository, pkgName)
+  const gitRepo = parsePackageJsonRepository(repository, depName)
   return gitRepo
 }
 
-function parsePackageJsonRepository(repository: string, pkgName: string): { owner: string; repo: string } {
-  const wrongFormat = `The \`package.json#repository\` value of \`${pkgName}\` is \`${repository}\` but only values with the format \`https://github.com/\${owner}/\${repo}\` or \`github:\${owner}\`:\${repo}\` are supported. PR welcome to add support for more formats.`
+function parsePackageJsonRepository(repository: string, depName: string): { owner: string; repo: string } {
+  const wrongFormat = `The \`package.json#repository\` value of \`${depName}\` is \`${repository}\` but only values with the format \`https://github.com/\${owner}/\${repo}\` or \`github:\${owner}\`:\${repo}\` are supported. PR welcome to add support for more formats.`
 
   let repoPath: string | null = null
   for (const prefix of ['https://github.com/', 'github:']) {
