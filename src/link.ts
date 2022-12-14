@@ -79,6 +79,8 @@ async function link(depName: string) {
     console.log(`Symlink: ${targetPath} <- ${sourcePath}`)
   }
 
+  await runCommand(`pnpm run build`, { cwd: depRepoDir, print: 'overview' })
+
   showDepVersion(depName, depRepoDir)
 }
 
