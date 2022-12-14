@@ -3,7 +3,7 @@ export { loadConfig }
 
 import path from 'path'
 import fs from 'fs'
-import { assert, assertUsage, fsWindowsBugWorkaround, isObject } from './utils'
+import { assert, assertUsage, fsWindowsBugWorkaround, isObject, cwdReal } from './utils'
 
 const configFileName = 'dev-my-dep.config.mjs'
 const errPrefix = `Config file ${configFileName} `
@@ -40,7 +40,7 @@ function assertConfig(config: unknown): asserts config is Config {
 }
 
 function find(): null | string {
-  let dir = process.cwd()
+  let dir = cwdReal
   while (true) {
     const configFilePath = path.join(dir, configFileName)
     if (fs.existsSync(configFilePath)) {

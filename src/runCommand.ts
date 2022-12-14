@@ -3,14 +3,14 @@ export { setProjectRoot }
 
 import { exec, spawn, ExecException } from 'child_process'
 import path from 'path'
-import { pathRelativeFromProjectRoot } from './utils'
+import { cwdReal, pathRelativeFromProjectRoot } from './utils'
 
 function runCommand(
   cmd: string,
   {
     swallowError,
     timeout = 5000,
-    cwd = process.cwd(),
+    cwd = cwdReal,
     print
   }: { swallowError?: true; timeout?: null | number; cwd?: string; print?: 'overview' | 'all' } = {}
 ): Promise<null | string> {
@@ -18,7 +18,7 @@ function runCommand(
 
   let cwdResolved = cwd
   if (cwdResolved.startsWith('.')) {
-    cwdResolved = path.join(process.cwd(), cwdResolved)
+    cwdResolved = path.join(cwdReal, cwdResolved)
   }
   const cwdHumanReadable = !projectRoot ? cwd : pathRelativeFromProjectRoot(projectRoot, cwdResolved)
 

@@ -7,6 +7,7 @@ export { loadPackageJson }
 
 import path from 'path'
 import assert from 'assert'
+import { getFilesystemRoot } from './utils'
 
 function loadPackageJson(pkgName: string): { packageJson: Record<string, unknown>; packageJsonPath: string } {
   let packageJsonPath: string | null = null
@@ -40,9 +41,4 @@ function findAndLoad(pkgName: string): string {
     }
     dir = dirNew
   }
-}
-
-function getFilesystemRoot() {
-  // https://stackoverflow.com/questions/9652043/identifying-the-file-system-root-with-node-js/50299531#50299531
-  return path.parse(process.cwd()).root
 }

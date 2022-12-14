@@ -5,7 +5,7 @@ import { runCommand, setProjectRoot } from './runCommand'
 import path from 'path'
 import fs from 'fs'
 import assert from 'assert'
-import { mkdirp, pathRelativeFromProjectRoot } from './utils'
+import { mkdirp, pathRelativeFromProjectRoot, cwdReal, getFilesystemRoot } from './utils'
 
 async function link(depName: string) {
   assertIsDep(depName)
@@ -52,7 +52,7 @@ async function link(depName: string) {
   assert(fs.existsSync(depRepoDir))
 
   assert(!(await lockFileIsDirty()))
-  const symlinkSource = path.join(process.cwd(), 'node_modules', depName)
+  const symlinkSource = path.join(cwdReal, 'node_modules', depName)
   let symlink = getSymlink(symlinkSource)
   if (
     !symlink ||
@@ -100,7 +100,7 @@ function findDepVersionLatest(depRepoDir: string) {
 }
 
 function findDepVersionCurrent(depName: string) {
-  const pkgJsonPath = path.join(process.cwd(), 'package.json')
+  const pkgJsonPath = path.join(cwdReal, 'package.json')
   const pkgJson = require(pkgJsonPath)
   const dependencies: Record<string, string> = pkgJson.dependencies
   const devDependencies: Record<string, string> = pkgJson.devDependencies
@@ -138,7 +138,7 @@ function getSymlink(symlinkSource: string): null | { symlinkValue: string; symli
 }
 
 function findWorkspaceRoot(): string {
-  const dirCurrent = process.cwd()
+  const dirCurrent = cwdReal
   let dir = dirCurrent
   const filesystemRoot = getFilesystemRoot()
   while (dir !== filesystemRoot) {
@@ -148,11 +148,6 @@ function findWorkspaceRoot(): string {
     dir = path.dirname(dir)
   }
   return dirCurrent
-}
-
-function getFilesystemRoot() {
-  // https://stackoverflow.com/questions/9652043/identifying-the-file-system-root-with-node-js/50299531#50299531
-  return path.parse(process.cwd()).root
 }
 
 function getGitRepo(depName: string) {
