@@ -1,2 +1,6 @@
 export * from './mkdirp'
 export * from './pathRelativeFromProjectRoot'
+export * from './assert'
+export * from './fsWindowsBugWorkaround'
+export * from './isObject'
+export * from './isCallable'

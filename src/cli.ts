@@ -1,5 +1,6 @@
 import { link } from './link'
 import { clear } from './clear'
+import { postinstall } from './postinstall'
 
 const { command, pkgName } = parseArgs()
 
@@ -9,24 +10,38 @@ if (command === null) {
 if (command === 'clear') {
   clear(pkgName)
 }
+if (command === 'postinstall') {
+  postinstall()
+}
 
-function parseArgs(): { command: null; pkgName: string } | { command: 'clear'; pkgName: null | string } {
-  const args = process.argv.slice(2)
-  if (args.length === 1) {
-    return { command: null, pkgName: args[0] }
+function parseArgs():
+  | { command: null; pkgName: string }
+  | { command: 'clear' | 'postinstall'; pkgName: null | string } {
+  const { numberOfArgs, arg1, arg2 } = getArgs()
+  if (arg1 === 'postinstall' && numberOfArgs === 1) {
+    return { command: 'postinstall', pkgName: null }
   }
-  const command = args[0]
-  if (command === 'clear' && args.length <= 2) {
-    const pkgName = args[1] ?? null
-    return { command, pkgName }
+  if (numberOfArgs === 1) {
+    return { command: null, pkgName: arg1 }
+  }
+  if (arg1 === 'clear' && numberOfArgs <= 2) {
+    const pkgName = arg2 ?? null
+    return { command: 'clear', pkgName }
   }
   console.log(
     [
-      // prettier-ignore
       'Commands:',
-      '  $ pnpm exec dev-my-dep <npm-package-name>',
-      '  $ pnpm exec dev-my-dep clear [npm-package-name]'
+      '  dev-my-dep <npm-package-name>',
+      '  dev-my-dep clear [npm-package-name]',
+      '  dev-my-dep postinstall'
     ].join('\n')
   )
   process.exit(0)
+}
+
+function getArgs() {
+  const args = process.argv.slice(2)
+  const numberOfArgs = args.length
+  const [arg1, arg2] = args
+  return { numberOfArgs, arg1, arg2 }
 }

@@ -2,15 +2,18 @@
   "name": "@brillout/dev-my-dep",
   "version": "0.0.10",
   "scripts": {
-    "// === Dev ===": "",
+    "// Dev": "",
     "dev": "tsc --watch",
-    "// === Build ===": "",
+    "// Build": "",
     "build": "rm -rf dist/ && tsc",
-    "// === Release ===": "",
+    "// Release": "",
     "prepublishOnly": "pnpm run build",
-    "release": "npm version patch && npm publish && git push && git push --tags"
+    "release": "npm version patch && npm publish && git push && git push --tags",
+    "// Auto-run": "",
+    "postinstall": "dev-my-dep postinstall"
   },
   "devDependencies": {
+    "@brillout/dev-my-dep": "link:.",
     "@types/node": "^15.12.2",
     "typescript": "^4.3.5"
   },
