@@ -31,9 +31,15 @@ async function link(depName: string) {
 
   const gitRepoAlreadyFetched = fs.existsSync(depRepoDir)
   if (!gitRepoAlreadyFetched) {
-    await runCommand(`git clone git@github.com:${owner}/${repo}`, {
+    // We use HTTPS to enable git clone in GitHub Actions
+    await runCommand(`git clone https://github.com/${owner}/${repo}.git`, {
       cwd: path.join(workspaceRoot, `./deps/`),
       timeout: 15 * 1000,
+      print: 'overview'
+    })
+    // We use SSH to enable pushing changes to the repo
+    await runCommand(`git remote set-url origin git@github.com:${owner}/${repo}.git`, {
+      cwd: depRepoDir,
       print: 'overview'
     })
   } else {
